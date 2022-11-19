@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<configuration>
+    <Property name="log-level" value="${LOG_LEVEL:-INFO}"/>
+    <Property name="log-pattern"
+              value="%d [%t] [deposit-api,%X{X-B3-TraceId},%X{X-B3-SpanId},%X{X-Span-Export}] %-5p %c - %m%n"/>
+
+    <appender name="consoleAppender" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>${log-pattern}</pattern>
+        </encoder>
+    </appender>
+
+    <logger name="com.wedoogift" level="${log-level}" additivity="false">
+        <appender-ref ref="consoleAppender"/>
+    </logger>
+
+    <root level="${log-level}">
+        <appender-ref ref="consoleAppender"/>
+    </root>
+
+</configuration>
