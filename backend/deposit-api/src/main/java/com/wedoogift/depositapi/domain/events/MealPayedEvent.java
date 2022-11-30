@@ -5,7 +5,7 @@ import javax.validation.constraints.NotNull;
 
 import org.axonframework.modelling.command.TargetAggregateIdentifier;
 
-import com.wedoogift.depositapi.domain.entities.Amount;
+import com.wedoogift.depositapi.domain.entities.MealPayment;
 
-public record CompanyDepositDistributedEvent(@NotNull @Valid Amount amount, @NotNull @TargetAggregateIdentifier String companyId) {
+public record MealPayedEvent(@NotNull @Valid MealPayment payment, @NotNull @TargetAggregateIdentifier String userId) {
 }

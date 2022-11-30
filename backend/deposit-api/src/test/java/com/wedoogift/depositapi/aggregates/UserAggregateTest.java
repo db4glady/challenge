@@ -1,9 +1,9 @@
 package com.wedoogift.depositapi.aggregates;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.util.Optional;
 import java.util.stream.Stream;
+
+import javax.validation.Validator;
 
 import org.axonframework.test.aggregate.AggregateTestFixture;
 import org.axonframework.test.aggregate.FixtureConfiguration;
@@ -17,22 +17,27 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.wedoogift.depositapi.builders.DepositDistributedEventBuilder;
-import com.wedoogift.depositapi.builders.DistributeDepositForUserCommandBuilder;
+import com.wedoogift.depositapi.builders.DistributeGiftDepositForUserCommandBuilder;
+import com.wedoogift.depositapi.builders.DistributeMealDepositForUserCommandBuilder;
+import com.wedoogift.depositapi.builders.GiftDepositBuilder;
+import com.wedoogift.depositapi.builders.GiftDepositDistributedEventBuilder;
 import com.wedoogift.depositapi.builders.MealDepositBuilder;
-import com.wedoogift.depositapi.builders.PayItemCommandBuilder;
-import com.wedoogift.depositapi.domain.commands.DistributeDepositForUserCommand;
+import com.wedoogift.depositapi.builders.MealDepositDistributedEventBuilder;
+import com.wedoogift.depositapi.builders.PayGiftCommandBuilder;
+import com.wedoogift.depositapi.builders.PayMealCommandBuilder;
+import com.wedoogift.depositapi.domain.commands.DistributeGiftDepositForUserCommand;
+import com.wedoogift.depositapi.domain.commands.DistributeMealDepositForUserCommand;
 import com.wedoogift.depositapi.domain.entities.Amount;
 import com.wedoogift.depositapi.domain.entities.Currency;
-import com.wedoogift.depositapi.services.ExpirationDateService;
+import com.wedoogift.depositapi.services.ExpirationDateVisitor;
 import com.wedoogift.depositapi.services.UserPaymentService;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
+import static org.mockito.Mockito.times;
 
 /**
  * tests de {@link UserAggregate}
@@ -40,7 +45,7 @@ import static org.mockito.BDDMockito.then;
 @ExtendWith(MockitoExtension.class)
 class UserAggregateTest {
     @Mock
-    ExpirationDateService expirationDateService;
+    ExpirationDateVisitor expirationDateVisitor;
 
     @Mock
     UserPaymentService userPaymentService;
@@ -49,67 +54,76 @@ class UserAggregateTest {
 
     FixtureConfiguration<UserAggregate> fixture;
 
-    static Stream<Arguments> notValidDepositCommands() {
+    static Stream<Arguments> notValidMealDepositCommands() {
         return Stream.of(Arguments.of(
-                DistributeDepositForUserCommandBuilder.appleDepositForJessicaCommand().withUserId(null).build(),
-                DistributeDepositForUserCommandBuilder.appleDepositForJessicaCommand().withUserId("").build(),
-                DistributeDepositForUserCommandBuilder.appleDepositForJessicaCommand().withDeposit(null).build(),
-                DistributeDepositForUserCommandBuilder.appleDepositForJessicaCommand()
+                DistributeMealDepositForUserCommandBuilder.appleDepositForJessicaCommand().withUserId(null).build(),
+                DistributeMealDepositForUserCommandBuilder.appleDepositForJessicaCommand().withUserId("").build(),
+                DistributeMealDepositForUserCommandBuilder.appleDepositForJessicaCommand().withDeposit(null).build(),
+                DistributeMealDepositForUserCommandBuilder.appleDepositForJessicaCommand()
                         .withDeposit(MealDepositBuilder.appleDepositForJessica().withCreationDate(null).build()).build(),
-                DistributeDepositForUserCommandBuilder.appleDepositForJessicaCommand()
+                DistributeMealDepositForUserCommandBuilder.appleDepositForJessicaCommand()
                         .withDeposit(MealDepositBuilder.appleDepositForJessica().withAmount(null).build()).build()));
+    }
+
+    static Stream<Arguments> notValidGiftDepositCommands() {
+        return Stream.of(Arguments.of(
+                DistributeGiftDepositForUserCommandBuilder.teslaDepositForJohnCommand().withUserId(null).build(),
+                DistributeGiftDepositForUserCommandBuilder.teslaDepositForJohnCommand().withUserId("").build(),
+                DistributeGiftDepositForUserCommandBuilder.teslaDepositForJohnCommand().withDeposit(null).build(),
+                DistributeGiftDepositForUserCommandBuilder.teslaDepositForJohnCommand()
+                        .withDeposit(GiftDepositBuilder.teslaDepositForJohn().withCreationDate(null).build()).build(),
+                DistributeGiftDepositForUserCommandBuilder.teslaDepositForJohnCommand()
+                        .withDeposit(GiftDepositBuilder.teslaDepositForJohn().withAmount(null).build()).build()));
     }
 
     @BeforeEach
     void setup() {
         userAggregate = new UserAggregate();
         fixture = new AggregateTestFixture<>(UserAggregate.class)
-                .registerInjectableResource(expirationDateService)
+                .registerInjectableResource(expirationDateVisitor)
                 .registerInjectableResource(userPaymentService);
     }
 
     @ParameterizedTest
-    @MethodSource({ "notValidDepositCommands" })
-    @DisplayName("handle deposits should throw an IllegalArgumentException input data is not valid")
-    void handle_deposits_should_throw_exception_when_user_id_is_null(DistributeDepositForUserCommand command) {
-        assertThrows(IllegalArgumentException.class, () -> userAggregate.handle(command, expirationDateService));
+    @MethodSource({ "notValidMealDepositCommands" })
+    @DisplayName("handle meal deposits should throw an IllegalArgumentException input data is not valid")
+    void handle_meal_deposits_should_throw_exception_when_user_id_is_null(DistributeMealDepositForUserCommand command) {
+        assertThrows(IllegalArgumentException.class, () -> userAggregate.handle(command, expirationDateVisitor));
+    }
+
+    @ParameterizedTest
+    @MethodSource({ "notValidGiftDepositCommands" })
+    @DisplayName("handle meal deposits should throw an IllegalArgumentException input data is not valid")
+    void handle_gift_deposits_should_throw_exception_when_user_id_is_null(DistributeGiftDepositForUserCommand command) {
+        assertThrows(IllegalArgumentException.class, () -> userAggregate.handle(command, expirationDateVisitor));
     }
 
     @Test
-    @DisplayName("handle deposits should throw an IllegalArgumentException expiration date is not retrieved")
-    void handle_deposits_should_throw_exception_when_expiration_date_null() {
-        // GIVEN
-        var command = DistributeDepositForUserCommandBuilder.appleDepositForJessicaCommand().build();
-
-        given(expirationDateService.get(command.deposit())).willReturn(Optional.empty());
-
-        // WHEN THEN
-        assertThrows(IllegalArgumentException.class, () -> userAggregate.handle(command, expirationDateService));
-    }
-
-    @Test
-    @DisplayName("handle deposits should apply events")
-    void handle_deposits_should_apply_events() {
-        var command = DistributeDepositForUserCommandBuilder.appleDepositForJessicaCommand().build();
-        var expirationDate = LocalDate.of(2021, 2, 28);
-        given(expirationDateService.get(command.deposit())).willReturn(Optional.of(expirationDate));
+    @DisplayName("handle meal deposits should apply events")
+    void handle_meal_deposits_should_apply_events() {
+        var command = DistributeMealDepositForUserCommandBuilder.appleDepositForJessicaCommand().build();
 
         fixture.given()
                 .when(command)
                 .expectSuccessfulHandlerExecution();
-
-        assertThat(command.deposit().getExpirationDate()).isEqualTo(expirationDate);
     }
 
-    // TODO tests for assertions
+    @Test
+    @DisplayName("handle gift deposits should apply events")
+    void handle_gift_deposits_should_apply_events() {
+        var command = DistributeGiftDepositForUserCommandBuilder.teslaDepositForJohnCommand().build();
 
-    @DisplayName("handle payments should apply events")
-    void handle_payments_should_apply_events() {
-        var previousEvent = DepositDistributedEventBuilder.appleDepositDistributedEventForJessica().build();
-        var command = PayItemCommandBuilder.oneEuroJessicaPaymentCommand().build();
+        fixture.given()
+                .when(command)
+                .expectSuccessfulHandlerExecution();
+    }
 
-        var expirationDate = LocalDate.of(2021, 2, 28);
-        given(expirationDateService.get(previousEvent.deposit())).willReturn(Optional.of(expirationDate));
+    @DisplayName("handle payments should apply events for gifts")
+    @Test
+    void handle_payments_should_apply_events_for_gift() {
+        var previousEvent = GiftDepositDistributedEventBuilder.teslaDepositDistributedEventForJohn().build();
+        var command = PayGiftCommandBuilder.oneEuroJohnPaymentCommand().build();
+
         given(userPaymentService.getBalance(anyList(), eq(command.payment().getDate()), eq(Currency.EURO)))
                 .willReturn(new Amount(BigDecimal.ONE, Currency.EURO));
 
@@ -117,6 +131,22 @@ class UserAggregateTest {
                 .when(command)
                 .expectSuccessfulHandlerExecution();
 
-        then(userPaymentService).should().pay(anyList(), command.payment());
+        then(userPaymentService).should(times(2)).pay(anyList(), eq(command.payment()));
+    }
+
+    @DisplayName("handle payments should apply events for meal")
+    @Test
+    void handle_payments_should_apply_events_for_meal() {
+        var previousEvent = MealDepositDistributedEventBuilder.appleDepositDistributedEventForJessica().build();
+        var command = PayMealCommandBuilder.oneEuroJessicaPaymentCommand().build();
+
+        given(userPaymentService.getBalance(anyList(), eq(command.payment().getDate()), eq(Currency.EURO)))
+                .willReturn(new Amount(BigDecimal.ONE, Currency.EURO));
+
+        fixture.given(previousEvent)
+                .when(command)
+                .expectSuccessfulHandlerExecution();
+
+        then(userPaymentService).should(times(2)).pay(anyList(), eq(command.payment()));
     }
 }

@@ -8,6 +8,7 @@ import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 
+import com.fasterxml.jackson.datatype.jsr310.ser.DurationSerializer;
 import com.wedoogift.depositapi.domain.entities.AbstractDeposit;
 import com.wedoogift.depositapi.domain.entities.AbstractPayment;
 import com.wedoogift.depositapi.domain.entities.Amount;
@@ -54,7 +55,7 @@ public class UserPaymentService {
         }
         if (restToPay.compareTo(BigDecimal.ZERO) > 0) {
             // or add invoice on user account ?
-            throw new IllegalStateException("insufficient balance");
+            throw new IllegalStateException("user insufficient balance");
         }
     }
 

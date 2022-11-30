@@ -11,7 +11,6 @@ import org.axonframework.modelling.command.CreationPolicy;
 import org.axonframework.spring.stereotype.Aggregate;
 
 import com.wedoogift.depositapi.domain.commands.CompanyMoneyTransferCommand;
-import com.wedoogift.depositapi.domain.commands.DistributeDepositForUserCommand;
 import com.wedoogift.depositapi.domain.commands.DistributeDepositFromCompanyCommand;
 import com.wedoogift.depositapi.domain.entities.Amount;
 import com.wedoogift.depositapi.domain.entities.Currency;
@@ -23,15 +22,31 @@ import static org.axonframework.modelling.command.AggregateLifecycle.apply;
 /**
  * Aggregate used to compute the company balance
  */
-@Aggregate
+@Aggregate(snapshotTriggerDefinition = "companySnapshotTrigger")
 public class CompanyAggregate {
 
     @AggregateIdentifier
     private String companyId;
     private Amount balance = new Amount(BigDecimal.ZERO, Currency.EURO);
 
+    public String getCompanyId() {
+        return companyId;
+    }
+
+    public void setCompanyId(String companyId) {
+        this.companyId = companyId;
+    }
+
+    public Amount getBalance() {
+        return balance;
+    }
+
+    public void setBalance(Amount balance) {
+        this.balance = balance;
+    }
+
     /**
-     * {@link DistributeDepositForUserCommand} handler used to transfer money to the company account
+     * {@link CompanyMoneyTransferCommand} handler used to transfer money to the company account
      *
      * @param companyMoneyTransferCommand the command to handle
      */

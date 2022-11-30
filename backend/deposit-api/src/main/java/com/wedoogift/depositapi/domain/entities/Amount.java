@@ -4,7 +4,8 @@ import java.math.BigDecimal;
 
 import javax.validation.constraints.NotNull;
 
-public record Amount(@NotNull BigDecimal value, @NotNull Currency currency) {
+public record Amount(@NotNull(message = "Amount value should not be null") BigDecimal value,
+                     Currency currency) {
 
     public Amount plus(Amount amount) {
         if(!amount.currency.equals(currency)) {
